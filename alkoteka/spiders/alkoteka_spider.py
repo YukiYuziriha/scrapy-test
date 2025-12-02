@@ -70,8 +70,8 @@ class AlkotekaSpider(scrapy.Spider):
         2. Extract pagination -> yield request to self.parse
         """
         self.logger.info(f"Parsing category: {response.url}")
-        return
-        yield
+        # TODO: Extract product links and pagination
+        yield from ()
 
     def parse_product(self, response: scrapy.http.Response) -> Any:
         # TODO: parse product details into ProductItem
