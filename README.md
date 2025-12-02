@@ -144,5 +144,22 @@ print("First product:", data[0] if data else None)
 PY
 ```
 
+## Proxy support
+
+Proxy support is enabled via a downloader middleware and configured through `proxies.txt` in the project root.
+
+- One proxy URL per line, e.g.:
+
+  ```text
+  # HTTP proxies
+  http://user:pass@host1:port1
+  http://host2:port2
+  ```
+
+- Empty or commented lines (`# ...`) are ignored.
+- If `proxies.txt` is missing or empty, the spider runs without a proxy.
+
+To quickly confirm that proxies are being applied, you can put a dummy entry like `http://127.0.0.1:9999` into `proxies.txt` and run the spider; connection-refused errors indicate that Scrapy is attempting to use the proxy.
+
 ## Notes
-- Proxy support is partially implemented.
+- Region (city) is controlled via `config.ini` / `-a city=...` and passed as `city_uuid` to all API calls.
