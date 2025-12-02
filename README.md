@@ -1,38 +1,51 @@
-# Alkoteka Scraper Scaffold
+# Парсер Alkoteka на Scrapy
 
-This repository contains a Scrapy project for parsing products from alkoteka.com.
+Небольшой, но по-взрослому сделанный Scrapy-проект для тестового задания:
 
-## Requirements
+- берёт товары из 3+ категорий `alkoteka.com` через их публичное API
+  (без Playwright/Selenium и попыток парсить ленивый DOM);
+- всегда учитывает регион (город) через `city_uuid` — по умолчанию Краснодар;
+- жёстко следует требуемой JSON-схеме, заполняя все поля безопасными
+  дефолтами, даже если часть данных не нашлась;
+- даёт удобную параметризацию по городам, файлам категорий и лимиту товаров
+  через CLI и `config.ini`, без правок кода;
+- умеет работать через прокси и содержит простой скрипт для быстрой проверки
+  результата.
+
+## Требования
 - Python 3.10+
 - Scrapy 2.11+
 
-## Setup
+## Установка
 
-1.  **Create and activate a virtual environment:**
+Все команды ниже выполняются из корня проекта.
+
+1.  **Создать и активировать виртуальное окружение:**
 
     ```bash
     python3 -m venv .venv
     source .venv/bin/activate
     ```
 
-2.  **Install dependencies:**
+2.  **Установить зависимости:**
 
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Install pre-commit hooks:**
+3.  **(Опционально) Установить pre-commit хуки:**
 
     ```bash
     pre-commit install
     ```
 
-## Configuration
+## Конфигурация
 
-The spider can be configured via `config.ini` or Command Line Interface (CLI) arguments.
+Паук настраивается через `config.ini` и аргументы командной строки Scrapy.
 
 ### `config.ini`
-The default configuration is stored in `config.ini`. You can add new cities by adding their UUIDs to the `[cities]` section.
+Основные настройки хранятся в `config.ini`. Здесь задаётся файл категорий,
+город по умолчанию и список доступных городов/UUID.
 
 ```ini
 [spider]
@@ -45,93 +58,100 @@ krasnodar = 4a70f9e0-46ae-11e7-83ff-00155d026416
 sochi = 985b3eea-46b4-11e7-83ff-00155d026416
 ```
 
-### Category File Format
-The category file (default: `categories.txt`) should contain one URL or path per line.
-- **Full URLs:** `https://alkoteka.com/catalog/vino`
-- **Relative Paths:** `/catalog/vino` (will be appended to `base_url`)
+### Формат файла категорий
+Файл категорий (по умолчанию `categories.txt`) должен содержать по одному URL
+или пути на строку.
+- **Полный URL:** `https://alkoteka.com/catalog/vino`
+- **Относительный путь:** `/catalog/vino` (будет склеен с `base_url`)
 
-Example:
+Пример:
 ```text
 https://alkoteka.com/catalog/krepkiy-alkogol
 /catalog/vino
 /catalog/shampanskoe-i-igristye-vina
 ```
 
-## Running the Spider
+## Запуск паука
 
-### 1. Simplest Way (Default)
-Just run this. It will scrape **100 items per category** (from `categories.txt`) using the default city (**Krasnodar**).
+### 1. Базовый запуск
+Базовый сценарий: паук читает категории из `categories.txt`, использует город
+по умолчанию (Краснодар) и ограничивает число товаров на категорию разумным
+значением.
 ```bash
 scrapy crawl alkoteka -O result.json
 ```
 
-### 2. Customizing the Number of Items
-Want fewer or more items? Use the `max_items` argument.
-*Note: This sets the limit **PER CATEGORY**.*
+### 2. Лимит количества товаров
+Чтобы получить меньше или больше товаров на категорию, используйте аргумент
+`max_items`.
+*Важно: лимит задаётся **на каждую категорию**.*
 
-**Get only 10 items per category:**
+**Например, только 10 товаров на категорию:**
 ```bash
 scrapy crawl alkoteka -a max_items=10 -O result.json
 ```
 
-**Get 500 items per category:**
+**Например, до 500 товаров на категорию:**
 ```bash
 scrapy crawl alkoteka -a max_items=500 -O result.json
 ```
 
-### 3. Other Customizations (Advanced)
-You can mix and match these arguments:
+### 3. Другие настройки (город, файл категорий)
+Аргументы можно свободно комбинировать.
 
-**Select a specific city:**
+**Выбрать конкретный город:**
 ```bash
 scrapy crawl alkoteka -a city=sochi -O result.json
 ```
 
-**Use a different category file:**
+**Использовать другой файл категорий:**
 ```bash
 scrapy crawl alkoteka -a categories=my_custom_list.txt -O result.json
 ```
 
-**Combine everything:**
-"I want 50 items per category, from Sochi, using my custom list."
+**Комбинированный пример (50 товаров, город Сочи, свой файл категорий):**
 ```bash
 scrapy crawl alkoteka -a city=sochi -a categories=my_custom_list.txt -a max_items=50 -O result.json
 ```
 
-## Managing Cities
-To use a different city as the default:
-1.  Find the city's UUID (e.g., from the API request `city_uuid` parameter).
-2.  Add it to `[cities]` in `config.ini`.
-3.  Change `default_city` in the `[spider]` section to your new city key.
+## Управление городами
+Чтобы использовать другой город по умолчанию:
+1. Найдите UUID города (например, в параметре `city_uuid` в запросах сайта).
+2. Добавьте его в секцию `[cities]` в `config.ini`.
+3. Задайте нужный ключ в `default_city` в секции `[spider]`.
 
-## Validation
+Также город можно передать при запуске через `-a city=...`.
 
-### 1. Sanity check helper
-To verify that `result.json` matches the required schema and contains data, use the bundled helper:
+## Проверка результата
+
+### 1. Вспомогательный скрипт `sanity_check.py`
+Для быстрой проверки структуры `result.json` и минимальной валидации схемы
+можно использовать скрипт:
 
 ```bash
 python3 sanity_check.py
 ```
 
-Or specify a different file:
+Или указать другой файл:
 ```bash
 python3 sanity_check.py my_results.json
 ```
 
-`sanity_check.py` will:
-- ensure the file exists and is valid JSON
-- confirm the root is a list and print the total number of items
-- check the first item against the required top-level keys
-- validate nested `price_data`, `stock`, and `metadata.__description`
+Скрипт:
+- проверяет, что файл существует и содержит валидный JSON;
+- убеждается, что корневой объект — список, и выводит количество элементов;
+- проверяет, что у первого товара есть все обязательные ключи верхнего уровня;
+- дополнительно валидирует вложенные структуры `price_data`, `stock` и
+  наличие `metadata.__description`.
 
-### 2. Quick manual JSON reading
-To quickly inspect the pretty-printed JSON (first few lines):
+### 2. Быстрый ручной просмотр JSON
+Чтобы быстро посмотреть начало файла в читабельном виде:
 
 ```bash
 python3 -m json.tool result.json | head
 ```
 
-Or inspect basic stats and the first item:
+Или получить базовую статистику и первый товар:
 
 ```bash
 python3 - << 'PY'
@@ -144,22 +164,28 @@ print("First product:", data[0] if data else None)
 PY
 ```
 
-## Proxy support
+## Поддержка прокси
 
-Proxy support is enabled via a downloader middleware and configured through `proxies.txt` in the project root.
+Прокси настраиваются через `proxies.txt` в корне проекта и middleware
+`ProxyMiddleware`.
 
-- One proxy URL per line, e.g.:
+- Одна строка — один прокси URL, например:
 
   ```text
-  # HTTP proxies
+  # HTTP-прокси
   http://user:pass@host1:port1
   http://host2:port2
   ```
 
-- Empty or commented lines (`# ...`) are ignored.
-- If `proxies.txt` is missing or empty, the spider runs without a proxy.
+- Пустые строки и строки, начинающиеся с `#`, игнорируются.
+- Если `proxies.txt` отсутствует или пуст, паук работает без прокси.
 
-To quickly confirm that proxies are being applied, you can put a dummy entry like `http://127.0.0.1:9999` into `proxies.txt` and run the spider; connection-refused errors indicate that Scrapy is attempting to use the proxy.
+Простейший способ проверить, что прокси реально используется — указать
+заведомо нерабочий прокси (например, `http://127.0.0.1:9999`) и запустить
+паук: ошибки подключения в логах будут означать, что запросы идут через
+прокси.
 
-## Notes
-- Region (city) is controlled via `config.ini` / `-a city=...` and passed as `city_uuid` to all API calls.
+## Примечания
+- Регион (город) управляется через `config.ini` / `-a city=...` и далее
+  передаётся в API как `city_uuid`, поэтому данные всегда собираются для
+  нужного региона (по умолчанию — Краснодар).
