@@ -1,9 +1,9 @@
 import configparser
 import json
 import time
-from collections.abc import Generator, Mapping
+from collections.abc import Generator
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import scrapy
 import scrapy.http
@@ -243,7 +243,7 @@ class AlkotekaSpider(scrapy.Spider):
 
     def _get_product_data(
         self, response: scrapy.http.Response
-    ) -> dict[str, object] | None:
+    ) -> dict[str, Any] | None:
         try:
             raw_data = json.loads(response.text)
         except json.JSONDecodeError:
@@ -254,7 +254,7 @@ class AlkotekaSpider(scrapy.Spider):
             self.logger.error("Unexpected product payload at %s", response.url)
             return None
 
-        data = cast(dict[str, object], raw_data)
+        data = cast(dict[str, Any], raw_data)
 
         if not data.get("success"):
             self.logger.error("Product API error at %s", response.url)
@@ -265,15 +265,13 @@ class AlkotekaSpider(scrapy.Spider):
             self.logger.warning("Product payload missing for %s", response.url)
             return None
 
-        return cast(dict[str, object], product)
+        return cast(dict[str, Any], product)
 
-    def _resolve_slug(
-        self, product: Mapping[str, object], list_data: Mapping[str, object]
-    ) -> str:
+    def _resolve_slug(self, product: dict[str, Any], list_data: dict[str, Any]) -> str:
         slug = product.get("slug") or list_data.get("slug") or ""
         return str(slug)
 
-    def _parse_brand(self, product: Mapping[str, object]) -> str:
+    def _parse_brand(self, product: dict[str, Any]) -> str:
         brand_info = product.get("brand")
         if isinstance(brand_info, dict):
             name = brand_info.get("name")
@@ -281,7 +279,7 @@ class AlkotekaSpider(scrapy.Spider):
                 return name
         return ""
 
-    def _parse_title(self, product: Mapping[str, object]) -> str:
+    def _parse_title(self, product: dict[str, Any]) -> str:
         name_raw = product.get("name")
         name = str(name_raw).strip() if name_raw else ""
         volume_raw = product.get("volume")
@@ -292,7 +290,7 @@ class AlkotekaSpider(scrapy.Spider):
             return name
         return volume
 
-    def _parse_section(self, product: Mapping[str, object]) -> list[str]:
+    def _parse_section(self, product: dict[str, Any]) -> list[str]:
         section: list[str] = []
         category = product.get("category")
         while isinstance(category, dict):
@@ -302,7 +300,7 @@ class AlkotekaSpider(scrapy.Spider):
             category = category.get("parent")
         return [part for part in section if part]
 
-    def _parse_price_data(self, product: Mapping[str, object]) -> dict[str, object]:
+    def _parse_price_data(self, product: dict[str, Any]) -> dict[str, Any]:
         current = self._to_float(product.get("price"))
         original = self._to_float(product.get("prev_price"))
         if original == 0:
@@ -315,7 +313,7 @@ class AlkotekaSpider(scrapy.Spider):
 
         return {"current": current, "original": original, "sale_tag": sale_tag}
 
-    def _parse_stock(self, product: Mapping[str, object]) -> dict[str, object]:
+    def _parse_stock(self, product: dict[str, Any]) -> dict[str, Any]:
         count = 0
         count_raw = product.get("quantity_total", 0)
         if isinstance(count_raw, (int, float)):
@@ -327,7 +325,7 @@ class AlkotekaSpider(scrapy.Spider):
                 count = 0
         return {"in_stock": count > 0, "count": count}
 
-    def _parse_assets(self, product: Mapping[str, object]) -> dict[str, object]:
+    def _parse_assets(self, product: dict[str, Any]) -> dict[str, Any]:
         main_img_raw = product.get("image_url")
         main_img = str(main_img_raw) if main_img_raw else ""
         set_images = [main_img] if main_img else []
@@ -338,7 +336,7 @@ class AlkotekaSpider(scrapy.Spider):
             "video": [],
         }
 
-    def _parse_metadata(self, product: Mapping[str, object]) -> dict[str, object]:
+    def _parse_metadata(self, product: dict[str, Any]) -> dict[str, Any]:
         description = product.get("description")
         desc_text = str(description) if isinstance(description, str) else ""
 
@@ -347,7 +345,7 @@ class AlkotekaSpider(scrapy.Spider):
             if isinstance(blocks, list):
                 desc_text = " ".join(str(block) for block in blocks if block)
 
-        metadata: dict[str, object] = {"__description": desc_text}
+        metadata: dict[str, Any] = {"__description": desc_text}
 
         known_specs = ["country", "region", "strength", "sugar", "grape", "color"]
         for spec in known_specs:
@@ -364,7 +362,7 @@ class AlkotekaSpider(scrapy.Spider):
 
         return metadata
 
-    def _parse_marketing_tags(self, product: Mapping[str, object]) -> list[str]:
+    def _parse_marketing_tags(self, product: dict[str, Any]) -> list[str]:
         tags = []
         if product.get("is_new"):
             tags.append("Новинка")
