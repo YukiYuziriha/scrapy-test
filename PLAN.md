@@ -464,4 +464,3 @@ Since you’ll drive this via an agent, structure the work in **small, safe step
 ---
 
 If you want, next message we can do **agents.md rules** tailored to this exact plan: how the coding agent should behave, what checks to do, what not to touch, and how to avoid hallucinating selectors.
-
