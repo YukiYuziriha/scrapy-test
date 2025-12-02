@@ -105,7 +105,9 @@ To use a different city as the default:
 3.  Change `default_city` in the `[spider]` section to your new city key.
 
 ## Validation
-To verify that `result.json` matches the required schema and contains data:
+
+### 1. Sanity check helper
+To verify that `result.json` matches the required schema and contains data, use the bundled helper:
 
 ```bash
 python3 sanity_check.py
@@ -114,6 +116,32 @@ python3 sanity_check.py
 Or specify a different file:
 ```bash
 python3 sanity_check.py my_results.json
+```
+
+`sanity_check.py` will:
+- ensure the file exists and is valid JSON
+- confirm the root is a list and print the total number of items
+- check the first item against the required top-level keys
+- validate nested `price_data`, `stock`, and `metadata.__description`
+
+### 2. Quick manual JSON reading
+To quickly inspect the pretty-printed JSON (first few lines):
+
+```bash
+python3 -m json.tool result.json | head
+```
+
+Or inspect basic stats and the first item:
+
+```bash
+python3 - << 'PY'
+import json
+from pathlib import Path
+
+data = json.loads(Path("result.json").read_text(encoding="utf-8"))
+print("Total products:", len(data))
+print("First product:", data[0] if data else None)
+PY
 ```
 
 ## Notes

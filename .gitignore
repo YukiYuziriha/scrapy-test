@@ -29,4 +29,4 @@ coverage.xml
 .idea/
 
 # Project specific
-result.json
+result*.json
