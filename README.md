@@ -59,33 +59,43 @@ https://alkoteka.com/catalog/krepkiy-alkogol
 
 ## Running the Spider
 
-### Standard Run
-Uses defaults from `config.ini` (Default city: **Krasnodar**).
+### 1. Simplest Way (Default)
+Just run this. It will scrape **100 items per category** (from `categories.txt`) using the default city (**Krasnodar**).
 ```bash
 scrapy crawl alkoteka -O result.json
 ```
 
-### CLI Overrides
-You can override configuration values using the `-a` flag.
+### 2. Customizing the Number of Items
+Want fewer or more items? Use the `max_items` argument.
+*Note: This sets the limit **PER CATEGORY**.*
+
+**Get only 10 items per category:**
+```bash
+scrapy crawl alkoteka -a max_items=10 -O result.json
+```
+
+**Get 500 items per category:**
+```bash
+scrapy crawl alkoteka -a max_items=500 -O result.json
+```
+
+### 3. Other Customizations (Advanced)
+You can mix and match these arguments:
 
 **Select a specific city:**
 ```bash
 scrapy crawl alkoteka -a city=sochi -O result.json
 ```
 
-**Change category file:**
+**Use a different category file:**
 ```bash
 scrapy crawl alkoteka -a categories=my_custom_list.txt -O result.json
 ```
 
-**Change base URL:**
+**Combine everything:**
+"I want 50 items per category, from Sochi, using my custom list."
 ```bash
-scrapy crawl alkoteka -a base_url=https://mirror.alkoteka.com -O result.json
-```
-
-**Combine overrides:**
-```bash
-scrapy crawl alkoteka -a city=sochi -a categories=dev_list.txt -O result.json
+scrapy crawl alkoteka -a city=sochi -a categories=my_custom_list.txt -a max_items=50 -O result.json
 ```
 
 ## Managing Cities
@@ -93,6 +103,18 @@ To use a different city as the default:
 1.  Find the city's UUID (e.g., from the API request `city_uuid` parameter).
 2.  Add it to `[cities]` in `config.ini`.
 3.  Change `default_city` in the `[spider]` section to your new city key.
+
+## Validation
+To verify that `result.json` matches the required schema and contains data:
+
+```bash
+python3 sanity_check.py
+```
+
+Or specify a different file:
+```bash
+python3 sanity_check.py my_results.json
+```
 
 ## Notes
 - Proxy support is partially implemented.
